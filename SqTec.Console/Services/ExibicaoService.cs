@@ -12,17 +12,42 @@ namespace SqTec.Console.Services
     {
         public IEnumerable<RegiaoExibicao> AgruparClientesExibicaoPorRegiao(IEnumerable<ClienteExibicao> clientes)
         {
-            throw new NotImplementedException();
+            return clientes.
+                GroupBy(gc => gc.Regiao).
+                Select(x => new RegiaoExibicao(x.Key,
+                                               x.Sum(re => re.MedalhasOuro),
+                                               x.Sum(re => re.MedalhasPrata),
+                                               x.Sum(re => re.MedalhasBronze),
+                                               x.Sum(re => re.ValorDesconto))
+                                               );
         }
 
         public void ExibirClientes(IEnumerable<ClienteExibicao> clientes)
         {
-            throw new NotImplementedException();
+            var totalWidthNome = clientes.OrderByDescending(x => x.Nome.Length).FirstOrDefault().Nome.Length + 1;
+            clientes.ToList().ForEach(c =>
+            {
+                System.Console.WriteLine(String.Format("{0} | {1} anos | Ouro: {2} | Prata: {3} | Bronze: {4} | Desconto: R${5}",
+                                                  c.Nome.PadRight(totalWidthNome, ' '),
+                                                  c.Idade,
+                                                  c.MedalhasOuro.ToString().PadLeft(2, '0'),
+                                                  c.MedalhasPrata.ToString().PadLeft(3, '0'),
+                                                  c.MedalhasBronze.ToString().PadLeft(4, '0'),
+                                                  c.ValorDesconto));
+            });
         }
 
         public void ExibirSumarizadoPorRegiao(IEnumerable<RegiaoExibicao> regioes)
         {
-            throw new NotImplementedException();
+            regioes.ToList().ForEach(r =>
+            {
+                System.Console.WriteLine(String.Format("{0} | Ouro: {1} | Prata: {2} | Bronze: {3} | Desconto: R${4}",
+                                                  r.Regiao,
+                                                  r.MedalhasOuro.ToString().PadLeft(2, '0'),
+                                                  r.MedalhasPrata.ToString().PadLeft(2, '0'),
+                                                  r.MedalhasBronze.ToString().PadLeft(2, '0'),
+                                                  r.ValorDesconto));
+            });
         }
     }
 }

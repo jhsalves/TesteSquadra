@@ -4,9 +4,9 @@ using SqTec.Spec.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Newtonsoft;
 using Newtonsoft.Json;
 using System.Linq;
+using SqTec.Spec.Exceptions;
 
 namespace SqTec.Console.Services
 {
@@ -14,6 +14,7 @@ namespace SqTec.Console.Services
     {
         private readonly IConfigService _configService;
         private string _arquivoDadosBackup { get; set; }
+        private string _conteudoDados { get; set; }
         public ClienteService(IConfigService configService)
         {
             _configService = configService;
@@ -21,12 +22,22 @@ namespace SqTec.Console.Services
 
         public void Atualizar(ICliente cliente)
         {
-            throw new NotImplementedException();
+            var clientes = ClientesColecao().ToList();
+            var clienteExistente = clientes.FirstOrDefault(x => x.IdentificadorERP.Equals(cliente.IdentificadorERP));
+            if (clienteExistente != null)
+            {
+                clienteExistente.DataNascimento = cliente.DataNascimento;
+                clienteExistente.Nome = cliente.Nome;
+                clienteExistente.Pontos = cliente.Pontos;
+                clienteExistente.Regiao = cliente.Regiao;
+            }
+            _conteudoDados = JsonConvert.SerializeObject(clientes);
         }
 
         public void BeginTransaction()
         {
-            _arquivoDadosBackup = LerArquivo(Consts.CaminhoArquivoDados);
+            _conteudoDados = LerArquivo(Consts.CaminhoArquivoDados);
+            _arquivoDadosBackup = _conteudoDados;
         }
 
         private string LerArquivo(string caminho)
@@ -39,7 +50,8 @@ namespace SqTec.Console.Services
             }
             else
             {
-                File.Create(filePath);
+                var fileStream = File.Create(filePath);
+                fileStream.Close();
             }
             return conteudoArquivo;
         }
@@ -52,25 +64,24 @@ namespace SqTec.Console.Services
 
         public int CalcularIdade(ICliente cliente)
         {
-            throw new NotImplementedException();
+            return DateTime.Now.Year - cliente.DataNascimento.Year;
         }
 
         public void Commit()
         {
-            throw new NotImplementedException();
+            GravarArquivo(Consts.CaminhoArquivoDados, _conteudoDados);
         }
 
         public void Inserir(ICliente cliente)
         {
-            var listaClientes = ClientesColecao().ToList();
+            var listaClientes = ClientesColecao().ToList<ICliente>();
             listaClientes.Add(cliente);
-            var conteudoArquivo = JsonConvert.SerializeObject(listaClientes);
-            GravarArquivo(Consts.CaminhoArquivoDados, conteudoArquivo);
+            _conteudoDados = JsonConvert.SerializeObject(listaClientes);
         }
 
         public IEnumerable<ICliente> Listar()
         {
-            throw new NotImplementedException();
+            return ClientesColecao();
         }
 
         public IEnumerable<ICliente> ObterClientesDeTxt(string caminho)
@@ -81,24 +92,30 @@ namespace SqTec.Console.Services
             {
                 var partesCliente = clienteText.Split(';');
                 var cliente = new Cliente();
-                cliente.IdentificadorERP = Guid.Parse(partesCliente[0]);
-                cliente.Nome = partesCliente[1];
-                cliente.DataNascimento = DateTime.Parse(partesCliente[2]);
-                cliente.Regiao = partesCliente[3];
-                cliente.Pontos = Convert.ToInt32(partesCliente[4]);
-                listaClientes.Add(cliente);
+                try
+                {
+                    cliente.IdentificadorERP = Guid.Parse(partesCliente[0]);
+                    cliente.Nome = partesCliente[1];
+                    cliente.DataNascimento = DateTime.Parse(partesCliente[2]);
+                    cliente.Regiao = partesCliente[3];
+                    cliente.Pontos = Convert.ToInt32(partesCliente[4]);
+                    listaClientes.Add(cliente);
+                }
+                catch
+                {
+                    throw new LinhaInvalidaException(clienteText);
+                }
             }
             return listaClientes;
         }
 
-        private IEnumerable<ICliente> ClientesColecao()
+        private IEnumerable<Cliente> ClientesColecao()
         {
-            var conteudoArquivoDados = LerArquivo(Consts.CaminhoArquivoDados);
-            if (conteudoArquivoDados == string.Empty)
+            if (string.IsNullOrEmpty(_conteudoDados))
             {
-                return new List<ICliente>();
+                return new List<Cliente>();
             }
-            return JsonConvert.DeserializeObject<List<Cliente>>(conteudoArquivoDados);
+            return JsonConvert.DeserializeObject<List<Cliente>>(_conteudoDados);
         }
 
         public ICliente ObterPorId(Guid identificadorErp)
@@ -109,7 +126,8 @@ namespace SqTec.Console.Services
 
         public void Rollback()
         {
-            throw new NotImplementedException();
+            _conteudoDados = _arquivoDadosBackup;
+            GravarArquivo(Consts.CaminhoArquivoDados, _conteudoDados);
         }
     }
 }
