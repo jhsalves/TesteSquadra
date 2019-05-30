@@ -25,7 +25,7 @@ namespace SqTec.Console.Services
         public void ExibirClientes(IEnumerable<ClienteExibicao> clientes)
         {
             var totalWidthNome = clientes.OrderByDescending(x => x.Nome.Length).FirstOrDefault().Nome.Length + 1;
-            clientes.ToList().ForEach(c =>
+            clientes.OrderBy(o => o.Nome).ToList().ForEach(c =>
             {
                 System.Console.WriteLine(String.Format("{0} | {1} anos | Ouro: {2} | Prata: {3} | Bronze: {4} | Desconto: R${5}",
                                                   c.Nome.PadRight(totalWidthNome, ' '),
@@ -39,7 +39,7 @@ namespace SqTec.Console.Services
 
         public void ExibirSumarizadoPorRegiao(IEnumerable<RegiaoExibicao> regioes)
         {
-            regioes.ToList().ForEach(r =>
+            regioes.OrderBy(o => o.Regiao).ToList().ForEach(r =>
             {
                 System.Console.WriteLine(String.Format("{0} | Ouro: {1} | Prata: {2} | Bronze: {3} | Desconto: R${4}",
                                                   r.Regiao,

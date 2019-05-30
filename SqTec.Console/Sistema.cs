@@ -65,7 +65,6 @@ namespace SqTec.Console
             try
             {
                 _clienteService.BeginTransaction();
-
                 clientes.ToList().ForEach(cliente =>
                 {
                     if (_clienteService.ObterPorId(cliente.IdentificadorERP) == null)
